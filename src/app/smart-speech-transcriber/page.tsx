@@ -24,6 +24,8 @@ function SmartSpeechTranscriber() {
   );
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
+  const [transcript, setTranscript] = useState<string | null>(null);
+
   useEffect(() => {
     const initializeRecording = async () => {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -73,8 +75,10 @@ function SmartSpeechTranscriber() {
     stopPlaying();
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     console.debug("Submitting for transcription");
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    setTranscript("This is a test transcript");
   };
 
   return (
@@ -108,13 +112,24 @@ function SmartSpeechTranscriber() {
               type="submit"
               className="w-full"
               onClick={handleSubmit}
-              disabled={true}
+              disabled={isRecording || isPlaying}
             >
               Submit for Transcription
             </Button>
           </div>
         </CardContent>
       </Card>
+      {transcript && (
+        <Card className="w-full max-w-md mt-4">
+          <CardHeader>
+            <CardTitle>Transcript</CardTitle>
+            <CardDescription>
+              The transcript of the audio you recorded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>{transcript}</CardContent>
+        </Card>
+      )}
     </>
   );
 }
