@@ -14,6 +14,7 @@ import TitlePage from "@/components/ui/title-page";
 import useRecording from "@/hooks/smart-speech-transcriber/useRecording";
 import usePlayback from "@/hooks/smart-speech-transcriber/usePlayback";
 import { useEffect, useState } from "react";
+import { getTranscript } from "@/api/openai";
 
 function SmartSpeechTranscriber() {
   const { isRecording, startRecording, stopRecording } = useRecording();
@@ -23,6 +24,9 @@ function SmartSpeechTranscriber() {
     null
   );
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+
+  const [transcript, setTranscript] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeRecording = async () => {
@@ -40,6 +44,7 @@ function SmartSpeechTranscriber() {
     if (mediaRecorder) {
       mediaRecorder.ondataavailable = (event) => {
         setAudio(new Audio(URL.createObjectURL(event.data)));
+        setAudioBlob(event.data);
       };
       mediaRecorder.start();
     }
@@ -73,8 +78,20 @@ function SmartSpeechTranscriber() {
     stopPlaying();
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     console.debug("Submitting for transcription");
+
+    if (!audioBlob) {
+      return;
+    }
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "audio.wav");
+    const transcript = await getTranscript(formData);
+    if (transcript) {
+      setTranscript(transcript);
+    } else {
+      console.error("Failed to get transcript");
+    }
   };
 
   return (
@@ -108,13 +125,24 @@ function SmartSpeechTranscriber() {
               type="submit"
               className="w-full"
               onClick={handleSubmit}
-              disabled={true}
+              disabled={isRecording || isPlaying}
             >
               Submit for Transcription
             </Button>
           </div>
         </CardContent>
       </Card>
+      {transcript && (
+        <Card className="w-full max-w-md mt-4">
+          <CardHeader>
+            <CardTitle>Transcript</CardTitle>
+            <CardDescription>
+              The transcript of the audio you recorded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>{transcript}</CardContent>
+        </Card>
+      )}
     </>
   );
 }
