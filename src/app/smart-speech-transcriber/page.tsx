@@ -1,5 +1,7 @@
 "use client";
 
+import PlayButton from "@/components/smart-speech-transcriber/play-button";
+import RecordButton from "@/components/smart-speech-transcriber/record-button";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,31 +11,35 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import TitlePage from "@/components/ui/title-page";
-import { Mic, Play, Square } from "lucide-react";
-import { useState } from "react";
+import useRecording from "@/hooks/smart-speech-transcriber/useRecording";
+import usePlayback from "@/hooks/smart-speech-transcriber/usePlayback";
 
 function SmartSpeechTranscriber() {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { isRecording, startRecording, stopRecording } = useRecording();
+  const { isPlaying, startPlaying, stopPlaying } = usePlayback();
 
   const handleStartRecording = () => {
-    setIsRecording(true);
+    console.debug("Starting recording");
+    startRecording();
   };
 
   const handleStopRecording = () => {
-    setIsRecording(false);
+    console.debug("Stopping recording");
+    stopRecording();
   };
 
   const handlePlayAudio = () => {
-    setIsPlaying(true);
+    console.debug("Playing audio");
+    startPlaying();
   };
 
   const handleStopPlaying = () => {
-    setIsPlaying(false);
+    console.debug("Stopping playing");
+    stopPlaying();
   };
 
   const handleSubmit = () => {
-    console.log("Submitting for transcription");
+    console.debug("Submitting for transcription");
   };
 
   return (
@@ -50,51 +56,18 @@ function SmartSpeechTranscriber() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
-          <div className="flex items-center justify-center">
-            {isRecording ? (
-              <Button
-                size="lg"
-                variant="secondary"
-                onClick={handleStopRecording}
-                disabled={isPlaying}
-              >
-                <Square />
-                <span className="sr-only">Stop Recording</span>
-              </Button>
-            ) : (
-              <Button
-                size="lg"
-                onClick={handleStartRecording}
-                disabled={isPlaying}
-              >
-                <Mic />
-                <span className="sr-only">Record</span>
-              </Button>
-            )}
-          </div>
-          <div className="flex items-center justify-center">
-            {isPlaying ? (
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={handleStopPlaying}
-                disabled={isRecording}
-              >
-                <Square />
-                <span className="sr-only">Stop</span>
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={handlePlayAudio}
-                disabled={isRecording}
-              >
-                <Play />
-                <span className="sr-only">Play</span>
-              </Button>
-            )}
-          </div>
+          <RecordButton
+            isRecording={isRecording}
+            isPlaying={isPlaying}
+            handleStartRecording={handleStartRecording}
+            handleStopRecording={handleStopRecording}
+          />
+          <PlayButton
+            isPlaying={isPlaying}
+            isRecording={isRecording}
+            handlePlayAudio={handlePlayAudio}
+            handleStopPlaying={handleStopPlaying}
+          />
           <div>
             <Button type="submit" className="w-full" onClick={handleSubmit}>
               Submit for Transcription
