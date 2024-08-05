@@ -14,6 +14,7 @@ import TitlePage from "@/components/ui/title-page";
 import useRecording from "@/hooks/smart-speech-transcriber/useRecording";
 import usePlayback from "@/hooks/smart-speech-transcriber/usePlayback";
 import { useEffect, useState } from "react";
+import { getTranscript } from "@/api/openai";
 
 function SmartSpeechTranscriber() {
   const { isRecording, startRecording, stopRecording } = useRecording();
@@ -23,6 +24,7 @@ function SmartSpeechTranscriber() {
     null
   );
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
 
   const [transcript, setTranscript] = useState<string | null>(null);
 
@@ -42,6 +44,7 @@ function SmartSpeechTranscriber() {
     if (mediaRecorder) {
       mediaRecorder.ondataavailable = (event) => {
         setAudio(new Audio(URL.createObjectURL(event.data)));
+        setAudioBlob(event.data);
       };
       mediaRecorder.start();
     }
@@ -77,8 +80,18 @@ function SmartSpeechTranscriber() {
 
   const handleSubmit = async () => {
     console.debug("Submitting for transcription");
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    setTranscript("This is a test transcript");
+
+    if (!audioBlob) {
+      return;
+    }
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "audio.wav");
+    const transcript = await getTranscript(formData);
+    if (transcript) {
+      setTranscript(transcript);
+    } else {
+      console.error("Failed to get transcript");
+    }
   };
 
   return (
