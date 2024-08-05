@@ -21,7 +21,9 @@ export default function RootLayout({
       <html lang="en">
         <body className={inter.className}>
           <MainNav />
-          {children}
+          <main className="flex flex-col items-center min-w-screen">
+            {children}
+          </main>
         </body>
       </html>
     </ThemeProvider>
