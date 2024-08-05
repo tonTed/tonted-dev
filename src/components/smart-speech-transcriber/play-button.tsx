@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Play, Square } from "lucide-react";
+import { Pause, Play } from "lucide-react";
 
 interface PlayButtonProps {
   isPlaying: boolean;
@@ -22,7 +22,7 @@ const PlayButton: React.FC<PlayButtonProps> = ({
         onClick={handleStopPlaying}
         disabled={isRecording}
       >
-        <Square />
+        <Pause />
         <span className="sr-only">Stop</span>
       </Button>
     ) : (
