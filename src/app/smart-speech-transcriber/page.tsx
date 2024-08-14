@@ -12,7 +12,7 @@ import {
 import TitlePage from "@/components/ui/title-page";
 import useRecording from "@/hooks/smart-speech-transcriber/useRecording";
 import { useEffect, useState } from "react";
-import { getTranscript } from "@/api/openai";
+import { getTranscript, interpretTranscript } from "@/api/openai";
 
 function SmartSpeechTranscriber() {
   const { isRecording, startRecording, stopRecording } = useRecording();
@@ -24,6 +24,19 @@ function SmartSpeechTranscriber() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const [transcript, setTranscript] = useState<string | null>(null);
+  const [isTranscripting, setIsTranscripting] = useState(false);
+
+  const [interpretedTranscript, setInterpretedTranscript] = useState<
+    string | null
+  >(null);
+  const [isInterpreting, setIsInterpreting] = useState(false);
+
+  const [
+    parondontologieInterpretedTranscript,
+    setParondontologieInterpretedTranscript,
+  ] = useState<string | null>(null);
+  const [isParondontologieInterpreting, setIsParondontologieInterpreting] =
+    useState(false);
 
   useEffect(() => {
     const initializeRecording = async () => {
@@ -57,6 +70,9 @@ function SmartSpeechTranscriber() {
   };
 
   const handleSubmit = async () => {
+    setTranscript(null);
+    setInterpretedTranscript(null);
+    setParondontologieInterpretedTranscript(null);
     console.debug("Submitting for transcription");
 
     if (!audioBlob) {
@@ -64,12 +80,27 @@ function SmartSpeechTranscriber() {
     }
     const formData = new FormData();
     formData.append("audio", audioBlob, "audio.webm");
+    setIsTranscripting(true);
     const transcript = await getTranscript(formData);
     if (transcript) {
       setTranscript(transcript);
+      setIsInterpreting(true);
+      setIsParondontologieInterpreting(true);
+      const [interpretedTranscript, parondontologieInterpretedTranscript] =
+        await Promise.all([
+          interpretTranscript(transcript, "interpret"),
+          interpretTranscript(transcript, "parondontologie"),
+        ]);
+      setInterpretedTranscript(interpretedTranscript);
+      setParondontologieInterpretedTranscript(
+        parondontologieInterpretedTranscript
+      );
     } else {
       console.error("Failed to get transcript");
     }
+    setIsTranscripting(false);
+    setIsInterpreting(false);
+    setIsParondontologieInterpreting(false);
   };
 
   return (
@@ -106,15 +137,42 @@ function SmartSpeechTranscriber() {
           </div>
         </CardContent>
       </Card>
-      {transcript && (
-        <Card className="w-full max-w-md mt-4">
+      {(isTranscripting || transcript) && (
+        <Card className="w-full max-w-2xl mt-4">
           <CardHeader>
-            <CardTitle>Transcript</CardTitle>
+            <CardTitle>Raw Transcript</CardTitle>
             <CardDescription>
-              The transcript of the audio you recorded.
+              The raw transcript of the audio you recorded.
             </CardDescription>
           </CardHeader>
-          <CardContent>{transcript}</CardContent>
+          <CardContent>{transcript || "Transcripting..."}</CardContent>
+        </Card>
+      )}
+      {(isInterpreting || interpretedTranscript) && (
+        <Card className="w-full max-w-2xl mt-4">
+          <CardHeader>
+            <CardTitle>Interpreted Transcript</CardTitle>
+            <CardDescription>
+              The interpreted transcript of the audio you recorded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {interpretedTranscript || "Interpreting..."}
+          </CardContent>
+        </Card>
+      )}
+      {(isParondontologieInterpreting ||
+        parondontologieInterpretedTranscript) && (
+        <Card className="w-full max-w-2xl mt-4">
+          <CardHeader>
+            <CardTitle>Parondontologie Interpreted Transcript</CardTitle>
+            <CardDescription>
+              The interpreted transcript of the audio you recorded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {parondontologieInterpretedTranscript || "Interpreting..."}
+          </CardContent>
         </Card>
       )}
     </>
