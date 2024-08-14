@@ -11,8 +11,64 @@ import {
 } from "@/components/ui/card";
 import TitlePage from "@/components/ui/title-page";
 import useRecording from "@/hooks/smart-speech-transcriber/useRecording";
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { getTranscript, interpretTranscript } from "@/api/openai";
+import { Input } from "@/components/ui/input";
+
+function formatRapport(rapport: string): React.ReactNode {
+  const rapportObj: RapportConsultationParodontale = JSON.parse(rapport);
+
+  return (
+    <div>
+      <p>
+        <strong>Patient :</strong> {rapportObj.patient}
+      </p>
+      <p style={{ marginTop: "1em" }}>
+        <strong>Motif de consultation :</strong> {rapportObj.motifConsultation}
+      </p>
+      <p style={{ marginTop: "1em" }}>
+        <strong>Observations :</strong> {rapportObj.observations}
+      </p>
+      <p style={{ marginTop: "1em" }}>
+        <strong>Diagnostic :</strong> {rapportObj.diagnostic}
+      </p>
+      <div style={{ marginTop: "1em" }}>
+        <p style={{ marginTop: "1em" }}>
+          <strong>Plan de traitement :</strong>
+        </p>
+        <p style={{ marginTop: "1em" }}>
+          <strong>1. Traitement recommandé :</strong>
+          {rapportObj.planTraitement.traitementRecommande}
+        </p>
+        <p style={{ marginTop: "1em" }}>
+          <strong>2. Instructions d’hygiène buccodentaire :</strong>
+          {rapportObj.planTraitement.instructionsHygieneBuccodentaire}
+        </p>
+        <p style={{ marginTop: "1em" }}>
+          <strong>3. Réévaluation :</strong>
+          {rapportObj.planTraitement.reevaluation}
+        </p>
+      </div>
+      <p style={{ marginTop: "1em" }}>
+        <strong>Conclusion :</strong>
+        {rapportObj.conclusion}
+      </p>
+    </div>
+  );
+}
+
+type RapportConsultationParodontale = {
+  patient: string;
+  motifConsultation: string;
+  observations: string;
+  diagnostic: string;
+  planTraitement: {
+    traitementRecommande: string;
+    instructionsHygieneBuccodentaire: string;
+    reevaluation: string;
+  };
+  conclusion: string;
+};
 
 function SmartSpeechTranscriber() {
   const { isRecording, startRecording, stopRecording } = useRecording();
@@ -30,6 +86,9 @@ function SmartSpeechTranscriber() {
     string | null
   >(null);
   const [isInterpreting, setIsInterpreting] = useState(false);
+
+  const [rapport, setRapport] = useState<string | null>(null);
+  const [isRapporting, setIsRapporting] = useState(false);
 
   const [
     parondontologieInterpretedTranscript,
@@ -61,6 +120,14 @@ function SmartSpeechTranscriber() {
     startRecording();
   };
 
+  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setAudioBlob(file);
+      setAudioUrl(URL.createObjectURL(file));
+    }
+  };
+
   const handleStopRecording = () => {
     console.debug("Stopping recording");
     if (mediaRecorder) {
@@ -86,21 +153,28 @@ function SmartSpeechTranscriber() {
       setTranscript(transcript);
       setIsInterpreting(true);
       setIsParondontologieInterpreting(true);
-      const [interpretedTranscript, parondontologieInterpretedTranscript] =
-        await Promise.all([
-          interpretTranscript(transcript, "interpret"),
-          interpretTranscript(transcript, "parondontologie"),
-        ]);
+      setIsRapporting(true);
+      const [
+        interpretedTranscript,
+        parondontologieInterpretedTranscript,
+        rapport,
+      ] = await Promise.all([
+        interpretTranscript(transcript, "interpret"),
+        interpretTranscript(transcript, "parondontologie"),
+        interpretTranscript(transcript, "rapport"),
+      ]);
       setInterpretedTranscript(interpretedTranscript);
       setParondontologieInterpretedTranscript(
         parondontologieInterpretedTranscript
       );
+      setRapport(rapport);
     } else {
       console.error("Failed to get transcript");
     }
     setIsTranscripting(false);
     setIsInterpreting(false);
     setIsParondontologieInterpreting(false);
+    setIsRapporting(false);
   };
 
   return (
@@ -122,8 +196,19 @@ function SmartSpeechTranscriber() {
             handleStartRecording={handleStartRecording}
             handleStopRecording={handleStopRecording}
           />
+          <Input
+            type="file"
+            accept="audio/*"
+            onChange={handleFileUpload}
+            className="mt-4"
+          />
           {audioUrl && !isRecording && (
-            <audio className="" src={audioUrl} controls />
+            <div className="flex items-center">
+              <audio className="" src={audioUrl} controls />
+              <a href={audioUrl} download="recording.webm">
+                <Button className="ml-2">Download</Button>
+              </a>
+            </div>
           )}
           <div>
             <Button
@@ -172,6 +257,19 @@ function SmartSpeechTranscriber() {
           </CardHeader>
           <CardContent>
             {parondontologieInterpretedTranscript || "Interpreting..."}
+          </CardContent>
+        </Card>
+      )}
+      {(isRapporting || rapport) && (
+        <Card className="w-full max-w-2xl mt-4">
+          <CardHeader>
+            <CardTitle>Rapport</CardTitle>
+            <CardDescription>
+              The rapport of the audio you recorded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {rapport ? formatRapport(rapport) : "Rapporting..."}
           </CardContent>
         </Card>
       )}
